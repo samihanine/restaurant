@@ -30,7 +30,7 @@ export const Wrapper: React.FC<Props> = ({ children, title, className }) => {
 
   const navigation = [
     { name: 'Accueil', href: '/dashboard', icon: HomeIcon },
-    { name: 'Commandes', href: '/orders', icon: ViewGridIcon },
+    //{ name: 'Commandes', href: '/orders', icon: ViewGridIcon },
 
     { name: 'Historique', href: '/admin/history', icon: ClockIcon },
     { name: 'Menu', href: '/admin/items', icon: DocumentTextIcon },

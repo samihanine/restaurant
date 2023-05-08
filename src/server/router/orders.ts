@@ -10,7 +10,7 @@ const schema = z.object({
   customerPhone: z.string().default(''),
   customerAddress: z.string().default(''),
   restaurantId: z.string(),
-  status: z.enum(['ACCEPTED', 'PREPARING', 'READY', 'DELIVERED', 'CANCELED']).default('ACCEPTED'),
+  status: z.enum(['PENDING', 'PREPARING', 'READY', 'DELIVERED', 'CANCELED']).default('PENDING'),
   employeeId: z.string().optional(),
   type: z.enum(['DELIVERY', 'TAKEAWAY', 'ONSPOT']).default('ONSPOT'),
   deletedAt: z.date().optional().nullable(),
@@ -25,6 +25,10 @@ export const ordersRouter = router({
         id: input,
         deletedAt: null,
       },
+      include: {
+        ordersItems: true,
+        employee: true,
+      },
     });
 
     return item;
@@ -33,6 +37,10 @@ export const ordersRouter = router({
     const items = await ctx.prisma.orders.findMany({
       where: {
         deletedAt: null,
+      },
+      include: {
+        ordersItems: true,
+        employee: true,
       },
     });
 
@@ -43,6 +51,10 @@ export const ordersRouter = router({
       where: {
         restaurantId: input,
         deletedAt: null,
+      },
+      include: {
+        ordersItems: true,
+        employee: true,
       },
     });
 

@@ -15,7 +15,7 @@ enum ItemType {
 }
 
 enum OrderStatus {
-    ACCEPTED
+    PENDING
     PREPARING
     READY
     DELIVERED
@@ -66,7 +66,7 @@ model UsersRestaurants {
     createdAt    DateTime  @default(now())
     updatedAt    DateTime  @updatedAt
 
-    restaurant Restaurants @relation(fields: [restaurantId], references: [id])
+    restaurant Restaurants @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
 }
 
 model Categories {
@@ -80,7 +80,7 @@ model Categories {
     createdAt    DateTime    @default(now())
     updatedAt    DateTime    @updatedAt
     items        Items[]
-    restaurant   Restaurants @relation(fields: [restaurantId], references: [id])
+    restaurant   Restaurants @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
 }
 
 model Items {
@@ -98,7 +98,7 @@ model Items {
     deletedAt    DateTime?
     createdAt    DateTime   @default(now())
     updatedAt    DateTime   @updatedAt
-    category     Categories @relation(fields: [categoryId], references: [id])
+    category     Categories @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
     ordersItems OrdersItems[]
 }
@@ -113,27 +113,29 @@ model Employees {
     createdAt    DateTime  @default(now())
     updatedAt    DateTime  @updatedAt
 
-    restaurant Restaurants @relation(fields: [restaurantId], references: [id])
+    restaurant Restaurants @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
     Orders     Orders[]
 }
 
 model Orders {
     id                String      @id @default(uuid())
+    number            Int         @default(1)
     restaurantId      String
-    status            OrderStatus @default(ACCEPTED)
+    status            OrderStatus @default(PENDING)
     employeeId        String?
     customerFirstName String?
     customerLastName  String?
     customerPhone     String?
     customerAddress   String?
     customerEmail     String?
+    comment           String?
     type              OrderType   @default(ONSPOT)
     createdAt         DateTime    @default(now())
     updatedAt         DateTime    @updatedAt
     deletedAt         DateTime?
 
-    restaurant  Restaurants   @relation(fields: [restaurantId], references: [id])
-    employee    Employees?    @relation(fields: [employeeId], references: [id])
+    restaurant  Restaurants   @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+    employee    Employees?    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
     ordersItems OrdersItems[]
 }
 
@@ -148,8 +150,8 @@ model OrdersItems {
     createdAt     DateTime      @default(now())
     updatedAt     DateTime      @updatedAt
     deletedAt     DateTime?
-    order         Orders        @relation(fields: [orderId], references: [id])
-    item          Items         @relation(fields: [itemId], references: [id])
-    parentItem    OrdersItems?  @relation("ParentItem", fields: [parentItemOrderId], references: [id])
+    order         Orders        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+    item          Items         @relation(fields: [itemId], references: [id], onDelete: Cascade)
+    parentItem    OrdersItems?  @relation("ParentItem", fields: [parentItemOrderId], references: [id], onDelete: Cascade)
     childrenItems OrdersItems[] @relation("ParentItem")
 }

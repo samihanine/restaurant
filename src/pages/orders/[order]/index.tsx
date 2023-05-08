@@ -196,7 +196,7 @@ const Orders: NextPage = () => {
               ))}
           </div>
           <div className="self-end text-xl font-bold">
-            Total: {ordersItems?.reduce((acc, curr) => acc + curr.price * curr.quantity, 0)}€
+            Total: {ordersItems?.reduce((acc, curr) => acc + curr.price * curr.quantity, 0)?.toFixed(2)}€
           </div>
           <Button disabled={!Boolean(ordersItems?.length)} className="self-center text-lg">
             Valider la commande
