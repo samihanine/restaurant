@@ -4,7 +4,7 @@ import { Label } from './Label';
 type SwitchProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> & {
   id: string;
   checked: boolean;
-  onChange: (checked: boolean) => void;
+  onChange?: (checked: boolean) => void;
   label: string;
 };
 
@@ -13,12 +13,9 @@ export const InputSwitch = ({ id, checked, onChange, label, ...props }: SwitchPr
 
   const handleChange = () => {
     const newChecked = !isChecked;
-    onChange(newChecked);
+    onChange?.(newChecked);
+    setIsChecked(newChecked);
   };
-
-  useEffect(() => {
-    setIsChecked(checked);
-  }, [checked]);
 
   return (
     <div className="flex flex-col gap-3">

@@ -103,11 +103,11 @@ function Table<T extends object>({
           <div className="overflow-hidden rounded-lg border border-gray-200 bg-white p-1 ">
             <table className={'Table min-w-full divide-y divide-gray-200 ' + className}>
               <thead className="bg-gray-50">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <tr key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
+                {table.getHeaderGroups().map((headerGroup, i) => (
+                  <tr key={i}>
+                    {headerGroup.headers.map((header, index) => (
                       <th
-                        key={header.id}
+                        key={index}
                         className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
                       >
                         {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
@@ -119,15 +119,15 @@ function Table<T extends object>({
 
               <tbody className="divide-y divide-gray-200 bg-white">
                 {!Boolean(loading) &&
-                  table.getRowModel().rows.map((row) => (
-                    <Fragment key={row.id}>
+                  table.getRowModel().rows.map((row, i) => (
+                    <Fragment key={i}>
                       <tr className={`transition-colors ${row.getIsExpanded() ? 'bg-gray-50' : ''}`}>
-                        {row.getVisibleCells().map((cell) => (
+                        {row.getVisibleCells().map((cell, index) => (
                           <td
                             style={{
                               width: cell.column.getSize(),
                             }}
-                            key={cell.id}
+                            key={index}
                             className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-500"
                           >
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -136,7 +136,7 @@ function Table<T extends object>({
                       </tr>
 
                       {renderSubComponent ? (
-                        <tr key={row.id + '-expanded'}>
+                        <tr key={i + '-expanded'}>
                           <td
                             colSpan={columns.length}
                             className="px-6 py-4 text-xs font-medium uppercase tracking-wider text-gray-500"

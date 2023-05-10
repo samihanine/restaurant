@@ -28,6 +28,13 @@ enum OrderType {
     ONSPOT
 }
 
+enum Role {
+    ROOT
+    ADMIN
+    EMPLOYEE
+    CUSTOMER
+}
+
 model Settings {
     userId    String    @id @unique
     language  String
@@ -35,7 +42,7 @@ model Settings {
 }
 
 model Restaurants {
-    id             String @id @default(uuid())
+    id             String  @id @default(uuid())
     name           String
     address        String
     phone          String
@@ -46,22 +53,23 @@ model Restaurants {
     userId         String
     primaryColor   String
     secondaryColor String
+    menuId         String?
 
     createdAt DateTime  @default(now())
     updatedAt DateTime  @updatedAt
     deletedAt DateTime?
 
-    categories       Categories[]
     employees        Employees[]
     orders           Orders[]
     usersRestaurants UsersRestaurants[]
+    menu             Menus?             @relation(fields: [menuId], references: [id], onDelete: SetNull)
 }
 
 model UsersRestaurants {
     id           String    @id @default(uuid())
     userId       String
     restaurantId String
-    role         String    @default("admin")
+    role         Role      @default(ADMIN)
     deletedAt    DateTime?
     createdAt    DateTime  @default(now())
     updatedAt    DateTime  @updatedAt
@@ -70,37 +78,86 @@ model UsersRestaurants {
 }
 
 model Categories {
-    id           String      @id @default(uuid())
-    order        Int         @default(1)
-    name         String
-    color        String
-    description  String
-    restaurantId String
-    deletedAt    DateTime?
-    createdAt    DateTime    @default(now())
-    updatedAt    DateTime    @updatedAt
-    items        Items[]
-    restaurant   Restaurants @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+    id            String          @id @default(uuid())
+    order         Int             @default(1)
+    name          String
+    color         String?         @default("")
+    description   String?         @default("")
+    menuId        String
+    deletedAt     DateTime?
+    createdAt     DateTime        @default(now())
+    updatedAt     DateTime        @updatedAt
+    items         Items[]
+    menu          Menus           @relation(fields: [menuId], references: [id], onDelete: Cascade)
+    groupsOptions GroupsOptions[]
+}
+
+model Menus {
+    id          String @id @default(uuid())
+    name        String
+    description String @default("")
+
+    deletedAt  DateTime?
+    createdAt  DateTime      @default(now())
+    updatedAt  DateTime      @updatedAt
+    Items      Items[]
+    restaurant Restaurants[]
+    categories Categories[]
+    groups     Groups[]
 }
 
 model Items {
-    id           String     @id @default(uuid())
-    name         String
-    description  String     @default("")
-    price        Float      @default(0)
-    outOfStock   Boolean    @default(false)
-    promotion    Float      @default(0)
-    type         ItemType   @default(REGULAR)
-    isHidden     Boolean    @default(false)
-    imageUrl     String     @default("https://static.vecteezy.com/system/resources/previews/003/170/825/original/isolated-food-plate-fork-and-spoon-design-free-vector.jpg")
-    categoryId   String
-    restaurantId String
-    deletedAt    DateTime?
-    createdAt    DateTime   @default(now())
-    updatedAt    DateTime   @updatedAt
-    category     Categories @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+    id          String    @id @default(uuid())
+    name        String
+    description String    @default("")
+    price       Float     @default(0)
+    outOfStock  Boolean   @default(false)
+    promotion   Float     @default(0)
+    groupId     String?
+    isHidden    Boolean   @default(false)
+    imageUrl    String?
+    categoryId  String?
+    menuId      String
+    tvaPercent  Float     @default(10)
+    deletedAt   DateTime?
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+
+    category Categories? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+    menu     Menus       @relation(fields: [menuId], references: [id], onDelete: Cascade)
+    group    Groups?     @relation(fields: [groupId], references: [id], onDelete: SetNull)
 
     ordersItems OrdersItems[]
+}
+
+model Groups {
+    id        String    @id @default(uuid())
+    name      String
+    menuId    String
+    deletedAt DateTime?
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+
+    menu          Menus           @relation(fields: [menuId], references: [id], onDelete: Cascade)
+    item          Items[]
+    groupsOptions GroupsOptions[]
+}
+
+model GroupsOptions {
+    id         String  @id @default(uuid())
+    name       String
+    categoryId String?
+    groupId    String
+    required   Boolean @default(false)
+    multiple   Boolean @default(false)
+    addonPrice Float?  @default(0)
+
+    deletedAt DateTime?
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+
+    group    Groups      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+    category Categories? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 }
 
 model Employees {

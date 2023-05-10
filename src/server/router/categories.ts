@@ -7,7 +7,7 @@ const schema = z.object({
   name: z.string().default(''),
   color: z.string().default(''),
   description: z.string().default(''),
-  restaurantId: z.string(),
+  menuId: z.string().nullable(),
   order: z.number().default(1),
 
   deletedAt: z.date().optional().nullable(),
@@ -36,9 +36,15 @@ export const categoriesRouter = router({
     return items;
   }),
   getAllByRestaurantId: protectedProcedure.input(z.string()).query(async ({ ctx, input }) => {
+    const restaurant = await ctx.prisma.restaurants.findFirst({
+      where: {
+        id: input,
+      },
+    });
+
     const items = await ctx.prisma.categories.findMany({
       where: {
-        restaurantId: input,
+        menuId: restaurant.menuId,
         deletedAt: null,
       },
     });

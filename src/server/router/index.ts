@@ -6,6 +6,7 @@ import { itemsRouter } from './items';
 import { ordersRouter } from './orders';
 import { employeesRouter } from './employees';
 import { itemsOrdersRouter } from './items-orders';
+import { groupsRouter } from './groups';
 
 export const appRouter = router({
   settings: settingsRouter,
@@ -15,6 +16,7 @@ export const appRouter = router({
   orders: ordersRouter,
   employees: employeesRouter,
   itemsOrders: itemsOrdersRouter,
+  groups: groupsRouter,
 });
 
 export type AppRouter = typeof appRouter;

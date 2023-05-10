@@ -43,6 +43,7 @@
     "next-connect": "^0.13.0",
     "next-intl": "^2.9.0",
     "next-plausible": "^3.6.4",
+    "pdfkit": "^0.13.0",
     "react": "^18.2.0",
     "react-breakout": "1.0.1",
     "react-chartjs-2": "^5.2.0",

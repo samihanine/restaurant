@@ -82,8 +82,19 @@ export const restaurantsRouter = router({
       },
     });
 
-    console.log(ctx.user?.id);
-
     return item?.restaurant?.id;
+  }),
+  getUserInformations: protectedProcedure.query(async ({ ctx }) => {
+    const item = await ctx.prisma.usersRestaurants.findFirst({
+      where: {
+        userId: ctx.user?.id || '',
+        deletedAt: null,
+      },
+      include: {
+        restaurant: true,
+      },
+    });
+
+    return item;
   }),
 });

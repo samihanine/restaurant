@@ -1,9 +1,9 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import {
   HomeIcon,
   MenuIcon,
-  ViewGridIcon,
+  ClipboardListIcon,
   XIcon,
   ClockIcon,
   TagIcon,
@@ -16,6 +16,8 @@ import { Head } from '@/components/layouts/Head';
 import { LogoText } from '@/components/logos/LogoText';
 import { SignoutButton } from '@/components/inputs/SignoutButton';
 import { classNames } from '@/utils/styling';
+import { useUser } from '@supabase/auth-helpers-react';
+import { useUserInformations } from '@/hooks/useUserInformations';
 
 type Props = {
   title?: string;
@@ -25,20 +27,31 @@ type Props = {
 
 export const Wrapper: React.FC<Props> = ({ children, title, className }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
+  const userInfos = useUserInformations();
   const { pathname } = useRouter();
 
-  const navigation = [
-    { name: 'Accueil', href: '/dashboard', icon: HomeIcon },
-    //{ name: 'Commandes', href: '/orders', icon: ViewGridIcon },
+  const navigation = useMemo(() => {
+    const role = userInfos?.role || 'EMPLOYEE';
 
-    { name: 'Historique', href: '/admin/history', icon: ClockIcon },
-    { name: 'Menu', href: '/admin/items', icon: DocumentTextIcon },
-    { name: 'Employés', href: '/admin/employees', icon: UserGroupIcon },
-    { name: 'Catégories', href: '/admin/categories', icon: TagIcon },
+    if (role === 'EMPLOYEE') {
+      return [
+        { name: 'Accueil', href: '/dashboard', icon: HomeIcon },
+        { name: 'Historique', href: '/admin/history', icon: ClockIcon },
+      ];
+    }
+    return [
+      { name: 'Accueil', href: '/dashboard', icon: HomeIcon },
+      //{ name: 'Commandes', href: '/orders', icon: ViewGridIcon },
 
-    //{ name: 'Paramètres', href: '/settings', icon: CogIcon },
-  ];
+      { name: 'Historique', href: '/admin/history', icon: ClockIcon },
+      { name: 'Nourriture', href: '/admin/items', icon: DocumentTextIcon },
+      { name: 'Employés', href: '/admin/employees', icon: UserGroupIcon },
+      { name: 'Catégories', href: '/admin/categories', icon: TagIcon },
+      { name: 'Menu', href: '/admin/groups', icon: ClipboardListIcon },
+
+      //{ name: 'Paramètres', href: '/settings', icon: CogIcon },
+    ];
+  }, [userInfos]);
 
   return (
     <>

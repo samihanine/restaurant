@@ -18,13 +18,16 @@ import { InputSelect } from '@/components/inputs/InputSelect';
 import { useCategories } from '@/hooks/useCategories';
 import { InputSwitch } from '@/components/inputs/InputSwitch';
 import { Tag } from '@/components/ui/Tag';
+import { useRestaurant } from '@/hooks/useRestaurant';
+import { useGroups } from '@/hooks/useGroups';
 
 const Menu: NextPage = () => {
   const { data, isLoading, isError, refetch } = useItems();
   const { data: categories } = useCategories();
   const [editItem, setEditItem] = useState<Partial<Items> | null>(null);
   const [destroyItem, setDestroyItem] = useState<Partial<Items> | null>(null);
-  const restaurantId = useRestaurantId();
+  const { data: restaurant } = useRestaurant();
+  const { data: groups } = useGroups();
   const deleteMutation = trpc.items.destroy.useMutation();
   const updateMutation = trpc.items.update.useMutation();
   const createMutation = trpc.items.create.useMutation();
@@ -34,13 +37,14 @@ const Menu: NextPage = () => {
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
 
-    console.log(data);
     const item = {
       ...editItem,
       ...data,
-      restaurantId,
+      menuId: restaurant?.menuId,
       price: parseFloat(data.price as string),
       promotion: parseFloat(data.promotion as string),
+      tvaPercent: parseFloat(data.tvaPercent as string),
+      groupId: data.groupId !== '' ? data.groupId : null,
     };
 
     try {
@@ -87,14 +91,16 @@ const Menu: NextPage = () => {
       header: () => <span>Nom</span>,
       cell: ({ row }) => <p>{row.original.name}</p>,
     }),
-    columnHelper.accessor('type', {
-      header: () => <span>Type</span>,
+    columnHelper.accessor('groupId', {
+      header: () => <span>Menu</span>,
       cell: ({ row }) => (
         <>
-          {row.original.type === 'REGULAR' && <Tag className="!bg-yellow-200 !text-yellow-600">Nourriture</Tag>}
-          {row.original.type === 'MENU' && <Tag className="!bg-green-200 !text-green-600">Menu</Tag>}
-          {row.original.type === 'DRINK' && <Tag className="!bg-blue-200 !text-blue-600">Boisson</Tag>}
-          {row.original.type === 'SAUCE' && <Tag className="!bg-red-200 !text-red-600">Sauce</Tag>}
+          {!row.original.groupId && <Tag className="!bg-yellow-200 !text-yellow-600">Unique</Tag>}
+          {row.original.groupId && (
+            <Tag className="!bg-green-200 !text-green-600">
+              {groups.find((g) => g.id === row.original.groupId)?.name}
+            </Tag>
+          )}
         </>
       ),
     }),
@@ -137,7 +143,8 @@ const Menu: NextPage = () => {
       <Wrapper title={'Elément'}>
         <Card>
           <div className="flex flex-col gap-5">
-            <div className="flex justify-end">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-primary">Nourriture</h2>
               <Button
                 onClick={() =>
                   setEditItem({
@@ -168,11 +175,12 @@ const Menu: NextPage = () => {
             <InputText defaultValue={editItem.name} label="Nom" name="name" id={'name'} />
             <InputText defaultValue={editItem.description} label="Description" name="description" id={'description'} />
             <InputText
-              defaultValue={editItem.price || 0}
+              defaultValue={editItem.price || '1.00'}
               label="Prix"
               name="price"
               id={'price'}
               type="text"
+              placeholder="1.00"
               pattern="[0-9]+(\.[0-9]+)?"
             />
             <InputSelect defaultValue={editItem.categoryId} label="Catégorie" name="categoryId" id={'categoryId'}>
@@ -182,12 +190,16 @@ const Menu: NextPage = () => {
                 </option>
               ))}
             </InputSelect>
-            <InputSelect defaultValue={editItem.type} label="Type" name="type" id={'type'}>
-              <option value="REGULAR">Nourriture</option>
-              <option value="MENU">Menu</option>
-              <option value="DRINK">Boisson</option>
-              <option value="SAUCE">Sauce</option>
+
+            <InputSelect defaultValue={editItem.groupId} label="Menu" name="groupId" id={'groupId'}>
+              <option value="">{'Unique'}</option>
+              {groups?.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
             </InputSelect>
+
             <InputSwitch
               checked={editItem.outOfStock || false}
               onChange={(checked) => setEditItem({ ...editItem, outOfStock: checked })}
@@ -203,7 +215,14 @@ const Menu: NextPage = () => {
               id={'promotion'}
               type="number"
             />
-            <InputText defaultValue={editItem.imageUrl} label="Url de l'image" name="imageUrl" id={'imageUrl'} />
+
+            <InputSelect id="tvaPercent" name="tvaPercent" label="% de TVA">
+              <option value="10">10%</option>
+              <option value="20">20%</option>
+              <option value="5">5%</option>
+            </InputSelect>
+
+            <InputText defaultValue={editItem.imageUrl || ''} label="Url de l'image" name="imageUrl" id={'imageUrl'} />
 
             <Button className="mt-5" type="submit">
               Enregistrer

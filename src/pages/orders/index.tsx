@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { trpc } from '@/utils/trpc';
 import { toast } from 'react-hot-toast';
 import { createColumnHelper } from '@tanstack/react-table';
@@ -9,11 +9,8 @@ import { getLocaleProps } from '@/utils/locales';
 import { Card } from '@/components/layouts/Card';
 import { useRestaurantId } from '@/hooks/useRestaurantId';
 import { useCategories } from '@/hooks/useCategories';
-import type { Orders } from '@prisma/client';
-import { InputText } from '@/components/inputs/InputText';
 import { Button } from '@/components/inputs/Button';
-import { Modal } from '@/components/layouts/Modal';
-import { PencilIcon, TrashIcon } from '@heroicons/react/outline';
+import { TrashIcon } from '@heroicons/react/outline';
 import { useItems } from '@/hooks/useItems';
 import { InputSelect } from '@/components/inputs/InputSelect';
 import { useEmployees } from '@/hooks/useEmployees';

@@ -14,24 +14,26 @@ import { InputText } from '@/components/inputs/InputText';
 import { Button } from '@/components/inputs/Button';
 import { Modal } from '@/components/layouts/Modal';
 import { PencilIcon, TrashIcon } from '@heroicons/react/outline';
+import { useRestaurant } from '@/hooks/useRestaurant';
 
 const Categories: NextPage = () => {
   const { data, isLoading, isError, refetch } = useCategories();
   const [editItem, setEditItem] = useState<Partial<Categories> | null>(null);
   const [destroyItem, setDestroyItem] = useState<Partial<Categories> | null>(null);
-  const restaurantId = useRestaurantId();
+  const { data: restaurant } = useRestaurant();
   const deleteMutation = trpc.categories.destroy.useMutation();
   const updateMutation = trpc.categories.update.useMutation();
   const createMutation = trpc.categories.create.useMutation();
-
+  console.log(restaurant);
   const onEdit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    console.log(restaurant);
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData.entries());
     const item = {
       ...editItem,
       ...data,
-      restaurantId,
+      menuId: restaurant?.menuId,
       order: Number(data.order),
     };
 
