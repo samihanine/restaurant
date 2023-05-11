@@ -137,20 +137,13 @@ export const ordersRouter = router({
         },
       });
 
-      console.log(lastOrder);
-
       let orderNumber = lastOrder ? lastOrder.number + 1 : 1;
-
-      console.log(orderNumber);
 
       if (lastOrder?.updatedAt.getDay() !== order.updatedAt.getDay()) {
         orderNumber = 1;
       }
-      console.log(lastOrder?.updatedAt.getDay());
-      console.log(new Date().getDay());
-      console.log(orderNumber);
-
       const pdf: string = await generateInvoicePdf({
+        companyName: order.restaurant.companyName,
         orderNumber: orderNumber.toString(),
         orderId: order.id,
         restaurantAddress: order.restaurant.address,
@@ -168,6 +161,7 @@ export const ordersRouter = router({
         tva: order.restaurant.tvaNumber,
         phone: order.restaurant.phone,
         cashTendered: cashTendered,
+        id: order.id,
       });
 
       const finalOrder = await ctx.prisma.orders.update({
@@ -187,10 +181,12 @@ export const ordersRouter = router({
 });
 
 async function generateInvoicePdf(props: {
+  id: string;
   orderNumber: string;
   orderId?: string;
   restaurantAddress: string;
   restaurantName: string;
+  companyName: string;
   date: Date;
   items: {
     id: string;
@@ -210,14 +206,15 @@ async function generateInvoicePdf(props: {
       const doc = new PDFDocument({ size: [57 * 2.83465, 11.69 * 72], margin: 5 });
 
       // Nom et adresse du restaurant
+      doc.fontSize(8).text(props.companyName, { align: 'center' });
       doc.fontSize(8).text(props.restaurantName, { align: 'center' });
       doc.fontSize(8).text(props.restaurantAddress, { align: 'center' });
 
       // Numéro de commande
-      doc.moveDown().fontSize(18).text(`E${props.orderNumber}`, { align: 'center', underline: true });
+      doc.moveDown().fontSize(14).text(`Commande E${props.orderNumber}`, { align: 'center', underline: true });
 
       // Date
-      doc.moveDown().fontSize(8).text(`Date: ${props.date.toLocaleDateString()}`, { align: 'right' });
+      doc.moveDown().fontSize(8).text(`Date: ${props.date.toLocaleString()}`, { align: 'right' });
 
       doc.moveDown();
 
@@ -295,6 +292,7 @@ async function generateInvoicePdf(props: {
       doc.moveDown().fontSize(8).text(`SIRET: ${props.siret}`);
       doc.text(`TVA: ${props.tva}`);
       doc.text(`Téléphone: ${props.phone}`);
+      doc.fontSize(6).text(`N° d'identification: ${props.orderId}`);
 
       doc.end();
 

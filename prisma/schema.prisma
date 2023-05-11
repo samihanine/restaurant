@@ -44,6 +44,7 @@ model Settings {
 model Restaurants {
     id             String  @id @default(uuid())
     name           String
+    companyName    String? @default("")
     address        String
     phone          String
     siretNumber    String
