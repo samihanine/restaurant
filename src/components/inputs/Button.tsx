@@ -24,7 +24,7 @@ export const Button: React.FC<ButtonProps> = ({
   <button
     onClick={(e) => (disabled || loading ? e.preventDefault() : onClick?.(e))}
     className={classNames(
-      'inline-flex w-fit items-center justify-center rounded-md border-2 border-transparent bg-primary px-3 py-2 text-sm font-medium leading-4 text-white shadow-sm hover:grayscale-[25%] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
+      'inline-flex w-fit items-center justify-center rounded-md border-2 border-transparent bg-primary px-4 py-2 text-lg font-medium leading-4 text-white shadow-sm hover:grayscale-[25%] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
       variant === 'secondary' ? 'bg-gray-400 text-gray-700 hover:bg-gray-500' : '',
       variant === 'red' ? '!border-2 !border-rose-500 bg-white !text-rose-500 hover:bg-rose-500 hover:!text-white' : '',
       `${disabled || loading ? '!border-transparent !bg-gray-300 !text-white' : ''}`,

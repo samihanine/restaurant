@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import type { NextPage } from 'next';
 import { Wrapper } from '@/components/layouts/Wrapper';
 import { getLocaleProps } from '@/utils/locales';
@@ -16,6 +16,7 @@ import { Button } from '@/components/inputs/Button';
 import { toast } from 'react-hot-toast';
 import { InputSelectMultiple } from '@/components/inputs/InputSelectMultiple';
 import { priceToString } from '@/utils/priceToString';
+import { InputPrice } from '@/components/inputs/InputPrice';
 
 const ItemsCard = ({ item, quantity = 0 }: { item: Items; quantity?: number }) => (
   <Card
@@ -99,32 +100,50 @@ const Orders: NextPage = () => {
   const createItemsOrders = trpc.itemsOrders.create.useMutation();
   const destroyItemsOrders = trpc.itemsOrders.destroy.useMutation();
   const confirmMutation = trpc.orders.confirm.useMutation();
-  const [selectedItem, setSelectedItem] = React.useState<Items | null>(null);
+  const [selectedItem, setSelectedItem] = React.useState<(typeof items)[0] | null>(null);
   const [quantity, setQuantity] = React.useState(1);
+  const [cashTendered, setcashTendered] = React.useState('0');
+  const total = React.useMemo(
+    () => ordersItems?.reduce((acc, curr) => acc + curr.price * curr.quantity, 0) || 0,
+    [ordersItems]
+  );
 
   const confirmOrder = async () => {
     try {
-      const idLoading = toast.loading('Loading...');
+      const money = parseFloat(cashTendered.replace(',', '.'));
+      if (money - total < 0) {
+        toast.error('La monnaie donnée ne peut pas être inférieure au total de la commande.');
+        return;
+      }
+      await confirmMutation.mutateAsync({
+        id: orderId,
+        cashTendered: money,
+      });
 
-      const res = await confirmMutation.mutateAsync(orderId);
-
-      toast.remove(idLoading);
-
-      console.log(res);
+      router.push(`/orders/${orderId}/info`);
       return;
     } catch (error) {
       console.error(error);
     }
   };
 
-  const updateQuantity = async (itemsOrders: OrdersItems, quantityValue: number) => {
+  const updateQuantity = async (itemsOrder: (typeof items)[0], quantityValue: number) => {
     try {
       const idLoading = toast.loading('Loading...');
+      const itemsOrdersChilds = ordersItems?.filter((item) => item.parentItemOrderId === itemsOrder.id) || [];
 
       if (quantityValue === 0) {
-        await destroyItemsOrders.mutateAsync(itemsOrders.id);
+        for (const itemOrder of itemsOrdersChilds) {
+          await updateItemsOrders.mutateAsync({ ...itemOrder, orderId, quantity: 0 });
+        }
+
+        await destroyItemsOrders.mutateAsync(itemsOrder.id);
       } else {
-        await updateItemsOrders.mutateAsync({ ...itemsOrders, orderId, quantity: quantityValue });
+        for (const itemOrder of itemsOrdersChilds) {
+          await updateItemsOrders.mutateAsync({ ...itemOrder, orderId, quantity: quantityValue });
+        }
+
+        await updateItemsOrders.mutateAsync({ ...itemsOrder, orderId, quantity: quantityValue });
       }
 
       await refetch();
@@ -138,13 +157,14 @@ const Orders: NextPage = () => {
   const handleSubmitItem = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    const formData = new FormData(event.currentTarget);
+    const data = Object.fromEntries(formData.entries());
+
     if (!selectedItem) {
       return;
     }
 
-    const idLoading = toast.loading('Loading...');
-
-    await createItemsOrders.mutateAsync({
+    const itemOrder = await createItemsOrders.mutateAsync({
       orderId,
       itemId: selectedItem.id,
       quantity,
@@ -152,12 +172,35 @@ const Orders: NextPage = () => {
       price: selectedItem.price,
     });
 
+    if (selectedItem.group) {
+      for (const [key, value] of Object.entries(data)) {
+        const option = selectedItem.group?.groupsOptions.find((option) => option.id === key);
+        const itemsOptions = (value as string).split(',');
+
+        for (const itemOption of itemsOptions) {
+          if (!itemOption || itemOption === '') continue;
+          await createItemsOrders.mutateAsync({
+            orderId,
+            itemId: itemOption,
+            quantity: quantity,
+            parentItemOrderId: itemOrder.id,
+            price: option?.addonPrice || 0,
+          });
+        }
+      }
+    }
+
     await refetch();
 
     setSelectedItem(null);
     setQuantity(1);
-    toast.remove(idLoading);
   };
+
+  useEffect(() => {
+    if (total > 0) {
+      setcashTendered(total.toFixed(2).toString());
+    }
+  }, [total]);
 
   return (
     <>
@@ -179,12 +222,35 @@ const Orders: NextPage = () => {
                 />
               ))}
           </div>
-          <div className="self-end text-xl font-bold">
-            Total: {priceToString(ordersItems?.reduce((acc, curr) => acc + curr.price * curr.quantity, 0))}
+
+          <div className="flex justify-between">
+            <div></div>
+            <p className="text-2xl font-bold">Total: {priceToString(total)}</p>
           </div>
-          <Button disabled={!Boolean(ordersItems?.length)} onClick={confirmOrder} className="self-center text-lg">
-            Valider la commande
-          </Button>
+          <InputPrice
+            label="Argent remis"
+            value={cashTendered}
+            onChange={(e) => setcashTendered(e.currentTarget.value)}
+            className="w-full"
+            id="tendered"
+          />
+          <div>
+            <h2 className="text-xl font-semibold">
+              Monaie à rendre:{' '}
+              <span
+                className={`
+                ${parseFloat(cashTendered.replace(',', '.')) - total < 0 ? 'text-red-500' : 'text-green-500'}
+              `}
+              >
+                {priceToString(parseFloat(cashTendered.replace(',', '.')) - total)}
+              </span>
+            </h2>
+          </div>
+          <div className="flex justify-center gap-4">
+            <Button disabled={!Boolean(ordersItems?.length)} onClick={confirmOrder} className="self-center text-lg">
+              Valider la commande
+            </Button>
+          </div>
         </Card>
         <div className="flex flex-col gap-5">
           {data?.map((category) => (
@@ -213,6 +279,46 @@ const Orders: NextPage = () => {
       {selectedItem && (
         <Modal onClose={() => setSelectedItem(null)} title={'Ajouter au panier'}>
           <form className="flex flex-col gap-5" onSubmit={handleSubmitItem}>
+            {selectedItem?.group && (
+              <div className="flex flex-col gap-3">
+                {selectedItem?.group.groupsOptions.map((option) => (
+                  <div key={option.id}>
+                    {option.multiple && (
+                      <InputSelectMultiple
+                        label={option.category?.name || ''}
+                        id={option.id}
+                        name={option.id}
+                        options={items
+                          .filter((item) => item.categoryId === option.categoryId)
+                          .map((item) => ({
+                            label: item.name,
+                            value: item.id,
+                          }))}
+                        required={option.required}
+                      />
+                    )}
+                    {!option.multiple && (
+                      <InputSelect
+                        required={option.required}
+                        label={option.category?.name || ''}
+                        id={option.id}
+                        name={option.id}
+                      >
+                        {!option.required && <option value="">Aucun</option>}
+                        {items
+                          .filter((item) => item.categoryId === option.categoryId)
+                          .map((item) => (
+                            <option key={item.id} value={item.id}>
+                              {item.name}
+                            </option>
+                          ))}
+                      </InputSelect>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="flex w-full items-center justify-center gap-4">
               <ButtonCircle
                 type="button"

@@ -95,7 +95,7 @@ const Menu: NextPage = () => {
       header: () => <span>Menu</span>,
       cell: ({ row }) => (
         <>
-          {!row.original.groupId && <Tag className="!bg-yellow-200 !text-yellow-600">Unique</Tag>}
+          {!row.original.groupId && <Tag className="!bg-yellow-200 !text-yellow-600">Seul</Tag>}
           {row.original.groupId && (
             <Tag className="!bg-green-200 !text-green-600">
               {groups.find((g) => g.id === row.original.groupId)?.name}
@@ -154,7 +154,7 @@ const Menu: NextPage = () => {
                     price: 0,
                     promotion: 0,
                     categoryId: '',
-                    type: 'REGULAR',
+                    groupId: null,
                     outOfStock: false,
                     imageUrl: '',
                   })
@@ -192,7 +192,7 @@ const Menu: NextPage = () => {
             </InputSelect>
 
             <InputSelect defaultValue={editItem.groupId} label="Menu" name="groupId" id={'groupId'}>
-              <option value="">{'Unique'}</option>
+              <option value="">{'Seul'}</option>
               {groups?.map((g) => (
                 <option key={g.id} value={g.id}>
                   {g.name}

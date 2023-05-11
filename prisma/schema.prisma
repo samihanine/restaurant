@@ -176,7 +176,7 @@ model Employees {
 
 model Orders {
     id                String      @id @default(uuid())
-    number            Int         @default(1)
+    number            Int         @default(0)
     restaurantId      String
     status            OrderStatus @default(PENDING)
     employeeId        String?
@@ -187,6 +187,8 @@ model Orders {
     customerEmail     String?
     comment           String?
     type              OrderType   @default(ONSPOT)
+    pdfBase64         String?
+    cashTendered      Float       @default(0)
     createdAt         DateTime    @default(now())
     updatedAt         DateTime    @updatedAt
     deletedAt         DateTime?

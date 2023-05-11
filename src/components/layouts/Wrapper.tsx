@@ -45,10 +45,9 @@ export const Wrapper: React.FC<Props> = ({ children, title, className }) => {
 
       { name: 'Historique', href: '/admin/history', icon: ClockIcon },
       { name: 'Nourriture', href: '/admin/items', icon: DocumentTextIcon },
-      { name: 'Employés', href: '/admin/employees', icon: UserGroupIcon },
-      { name: 'Catégories', href: '/admin/categories', icon: TagIcon },
       { name: 'Menu', href: '/admin/groups', icon: ClipboardListIcon },
-
+      { name: 'Catégories', href: '/admin/categories', icon: TagIcon },
+      { name: 'Employés', href: '/admin/employees', icon: UserGroupIcon },
       //{ name: 'Paramètres', href: '/settings', icon: CogIcon },
     ];
   }, [userInfos]);

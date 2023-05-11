@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { protectedProcedure, router } from '@/server/trpc';
 import PDFDocument from 'pdfkit';
 import { priceToString } from '@/utils/priceToString';
+import getStream from 'get-stream';
 
 const schema = z.object({
   id: z.string().optional(),
@@ -95,96 +96,94 @@ export const ordersRouter = router({
 
     return item;
   }),
-  confirm: protectedProcedure.input(z.string()).mutation(async ({ ctx, input }) => {
-    // get numer of the last order, if it's the first order, set it to 1
-    // and if iam not wrong, it's the first order
-    // and if the last order is from yesterday, set it to 1
+  confirm: protectedProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        cashTendered: z.number(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const orderId = input.id;
+      const cashTendered = input.cashTendered;
 
-    const lastOrder = await ctx.prisma.orders.findFirst({
-      where: {
-        restaurantId: input,
-        deletedAt: null,
-        status: 'READY',
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-
-    const newOrder = await ctx.prisma.orders.findFirst({
-      where: {
-        id: input,
-        deletedAt: null,
-      },
-    });
-
-    const lastOrderNumber = lastOrder ? lastOrder?.number : 0;
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const lastOrderDate = lastOrder ? lastOrder.updatedAt : yesterday;
-
-    const orderNumber = lastOrderDate.getDate() === newOrder?.updatedAt.getDate() ? lastOrderNumber + 1 : 1;
-
-    console.log('orderNumber', orderNumber);
-
-    await ctx.prisma.orders.update({
-      where: {
-        id: input,
-      },
-      data: {
-        status: 'READY',
-        number: orderNumber,
-      },
-    });
-
-    const order = await ctx.prisma.orders.findFirst({
-      where: {
-        id: input,
-        deletedAt: null,
-      },
-      include: {
-        ordersItems: {
-          include: {
-            item: true,
-          },
+      const order = await ctx.prisma.orders.findFirst({
+        where: {
+          id: orderId,
+          deletedAt: null,
         },
-        restaurant: true,
-      },
-    });
+        include: {
+          ordersItems: {
+            include: {
+              item: true,
+            },
+          },
+          restaurant: true,
+        },
+      });
 
-    return order;
-    if (!order) {
-      throw new Error('Order not found');
-    }
+      if (!order) {
+        throw new Error('Order not found');
+      }
 
-    const pdf: string = await generateInvoicePdf({
-      orderNumber: order.number.toString(),
-      orderId: order.id,
-      restaurantAddress: order.restaurant.address,
-      restaurantName: order.restaurant.name,
-      date: order.createdAt,
-      items: order.ordersItems.map((item) => ({
-        id: item.id,
-        name: item.item.name,
-        quantity: item.quantity,
-        price: item.item.price,
-        tvaPercent: item.item.tvaPercent,
-        parentId: item.parentItemOrderId || undefined,
-      })),
-      siret: order.restaurant.siretNumber,
-      tva: order.restaurant.tvaNumber,
-      phone: order.restaurant.phone,
-    });
+      const lastOrder = await ctx.prisma.orders.findFirst({
+        where: {
+          restaurantId: order?.restaurantId,
+          deletedAt: null,
+          status: 'READY',
+        },
+        orderBy: {
+          updatedAt: 'desc',
+        },
+      });
 
-    console.log(pdf);
+      console.log(lastOrder);
 
-    return {
-      order: order,
-      pdf: pdf,
-      number: orderNumber,
-    };
-  }),
+      let orderNumber = lastOrder ? lastOrder.number + 1 : 1;
+
+      console.log(orderNumber);
+
+      if (lastOrder?.updatedAt.getDay() !== order.updatedAt.getDay()) {
+        orderNumber = 1;
+      }
+      console.log(lastOrder?.updatedAt.getDay());
+      console.log(new Date().getDay());
+      console.log(orderNumber);
+
+      const pdf: string = await generateInvoicePdf({
+        orderNumber: orderNumber.toString(),
+        orderId: order.id,
+        restaurantAddress: order.restaurant.address,
+        restaurantName: order.restaurant.name,
+        date: order.createdAt,
+        items: order.ordersItems.map((item) => ({
+          id: item.id,
+          name: item.item.name,
+          quantity: item.quantity,
+          price: item.price,
+          tvaPercent: item.item.tvaPercent,
+          parentId: item.parentItemOrderId || undefined,
+        })),
+        siret: order.restaurant.siretNumber,
+        tva: order.restaurant.tvaNumber,
+        phone: order.restaurant.phone,
+        cashTendered: cashTendered,
+      });
+
+      const finalOrder = await ctx.prisma.orders.update({
+        where: {
+          id: orderId,
+        },
+        data: {
+          status: 'READY',
+          number: orderNumber,
+          pdfBase64: pdf,
+          cashTendered: cashTendered,
+        },
+      });
+
+      return finalOrder;
+    }),
 });
 
 async function generateInvoicePdf(props: {
@@ -204,75 +203,104 @@ async function generateInvoicePdf(props: {
   siret: string;
   tva: string;
   phone: string;
+  cashTendered: number;
 }): Promise<string> {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     try {
-      const doc = new PDFDocument({ size: [57 * 2.83465, 11.69 * 72], margin: 50 });
-
-      const buffers: Buffer[] = [];
-      doc.on('data', (buffer: Buffer) => buffers.push(buffer));
-      doc.on('end', () => {
-        // Convertir le buffer en base64 et résoudre la promesse
-        const base64PDF = Buffer.concat(buffers).toString('base64');
-        resolve(base64PDF);
-      });
+      const doc = new PDFDocument({ size: [57 * 2.83465, 11.69 * 72], margin: 5 });
 
       // Nom et adresse du restaurant
-      doc.fontSize(14).text(props.restaurantName, { align: 'center' });
-      doc.fontSize(10).text(props.restaurantAddress, { align: 'center' });
+      doc.fontSize(8).text(props.restaurantName, { align: 'center' });
+      doc.fontSize(8).text(props.restaurantAddress, { align: 'center' });
 
       // Numéro de commande
-      doc.fontSize(24).text(`Commande #${props.orderNumber}`, { align: 'center', underline: true });
+      doc.moveDown().fontSize(18).text(`E${props.orderNumber}`, { align: 'center', underline: true });
 
       // Date
-      doc.fontSize(10).text(`Date: ${props.date.toLocaleDateString()}`, { align: 'right' });
+      doc.moveDown().fontSize(8).text(`Date: ${props.date.toLocaleDateString()}`, { align: 'right' });
 
-      // Liste des articles
+      doc.moveDown();
+
+      const groupedItems: { [key: string]: typeof props.items } = { root: [] };
+
+      props.items.forEach((item) => {
+        if (item.parentId) {
+          if (!groupedItems[item.parentId]) {
+            groupedItems[item.parentId] = [];
+          }
+          groupedItems[item.parentId]?.push(item);
+        } else {
+          groupedItems?.root?.push(item);
+        }
+      });
+
+      // Trier les éléments pour que les enfants suivent directement leurs parents
+      const sortedItems: typeof props.items = [];
+
+      groupedItems?.root?.forEach((parentItem) => {
+        sortedItems.push(parentItem);
+        if (groupedItems[parentItem.id]) {
+          sortedItems.push(...groupedItems[parentItem.id]);
+        }
+      });
+
       let totalHT = 0;
       let totalTVA = 0;
-
-      const sortedItems = props.items.sort((a, b) => {
-        if (a.parentId === b.parentId) {
-          return a.id.localeCompare(b.id);
-        }
-        if (a.parentId) {
-          return a.parentId.localeCompare(b.id);
-        }
-        if (b.parentId) {
-          return a.id.localeCompare(b.parentId);
-        }
-        return a.id.localeCompare(b.id);
-      });
+      let totalTTC = 0;
 
       sortedItems.forEach((item) => {
         const isParent = !item.parentId;
-        const itemName = isParent ? item.name : `  ${item.name}`;
-        const itemTotalPrice = item.price * item.quantity;
+        const itemName = isParent ? item.name : `     ${item.name}`;
+        const itemTotalPriceTTC = item.price * item.quantity;
         const itemTVA = item.tvaPercent / 100;
-        const itemTotalTVA = itemTotalPrice * itemTVA;
+        const itemTotalPriceHT = itemTotalPriceTTC / (1 + itemTVA);
+        const itemTotalTVA = itemTotalPriceTTC - itemTotalPriceHT;
 
-        totalHT += itemTotalPrice;
+        totalHT += itemTotalPriceHT;
         totalTVA += itemTotalTVA;
+        totalTTC += itemTotalPriceTTC;
 
         doc
-          .fontSize(10)
+          .fontSize(8)
           .text(`${itemName} x${item.quantity}`, { continued: true })
-          .text(priceToString(itemTotalPrice), { align: 'right' });
+          .text(itemTotalPriceTTC === 0 ? ' ' : priceToString(itemTotalPriceTTC), { align: 'right' });
       });
 
       // Total HT et TVA
       doc
         .moveDown()
-        .fontSize(12)
+        .fontSize(8)
         .text(`Total HT:`, { continued: true })
         .text(priceToString(totalHT), { align: 'right' });
 
-      doc.fontSize(12).text(`Total TVA:`, { continued: true }).text(priceToString(totalTVA), { align: 'right' });
+      doc.fontSize(8).text(`Total TVA:`, { continued: true }).text(priceToString(totalTVA), { align: 'right' });
+
+      // Total TTC
+      doc.fontSize(14).text(`Total TTC:`, { continued: true }).text(priceToString(totalTTC), { align: 'right' });
+
+      // Espèces
+      doc
+        .moveDown()
+        .fontSize(8)
+        .text(`Espèces:`, { continued: true })
+        .text(priceToString(props.cashTendered), { align: 'right' });
+
+      // Monnaie rendue
+      doc
+        .fontSize(8)
+        .text(`Monnaie rendue:`, { continued: true })
+        .text(priceToString(props.cashTendered - (totalHT + totalTVA)), { align: 'right' });
 
       // Informations légales
-      doc.moveDown().fontSize(10).text(`SIRET: ${props.siret}`);
+      doc.moveDown().fontSize(8).text(`SIRET: ${props.siret}`);
       doc.text(`TVA: ${props.tva}`);
       doc.text(`Téléphone: ${props.phone}`);
+
+      doc.end();
+
+      const res = await getStream.buffer(doc);
+
+      resolve(res.toString('base64'));
     } catch (error) {
       // Rejeter la promesse en cas d'erreur
       reject(error);

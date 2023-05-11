@@ -111,7 +111,11 @@ const OrdersPage: NextPage = () => {
           <Card>
             <div>
               <h2 className="mb-3 text-lg font-bold">Commandes non validée</h2>
-              <Table columns={columns} data={orders || []} loading={isLoading || itemsIsLoading} />
+              <Table
+                columns={columns}
+                data={orders.filter((order) => order.status === 'PENDING') || []}
+                loading={isLoading || itemsIsLoading}
+              />
             </div>
           </Card>
         </div>

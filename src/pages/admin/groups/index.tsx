@@ -98,7 +98,7 @@ const Groups: NextPage = () => {
       };
       await updateOptionMutation.mutateAsync(item);
       await refetch();
-      toast.success('Section enregistrée');
+      toast.success('Option enregistrée');
     } catch (err) {
       console.error(err);
       toast.error('Une erreur est survenue');
@@ -116,7 +116,7 @@ const Groups: NextPage = () => {
         required: false,
       });
       await refetch();
-      toast.success('Section enregistrée');
+      toast.success('Option enregistrée');
     } catch (err) {
       console.error(err);
       toast.error('Une erreur est survenue');
@@ -127,7 +127,7 @@ const Groups: NextPage = () => {
     try {
       await deleteOptionMutation.mutateAsync(id);
       await refetch();
-      toast.success('Section supprimée');
+      toast.success('Option supprimée');
     } catch (err) {
       console.error(err);
       toast.error('Une erreur est survenue');
@@ -162,7 +162,7 @@ const Groups: NextPage = () => {
       cell: ({ row }) => <p>{row.original.name}</p>,
     }),
     columnHelper.accessor('id', {
-      header: () => <span>Nombre de sections</span>,
+      header: () => <span>{"Nombre d'options"}</span>,
       cell: ({ row }) => <p>{row.original.groupsOptions.length}</p>,
     }),
     columnHelper.accessor('id', {
@@ -263,7 +263,7 @@ const Groups: NextPage = () => {
             </React.Fragment>
           ))}
           <Button className="p-1" type="button" onClick={createGroupsOptions}>
-            <PlusIcon className="h-4 w-4" /> Ajouter une section
+            <PlusIcon className="h-4 w-4" /> Ajouter une option
           </Button>
         </Modal>
       )}

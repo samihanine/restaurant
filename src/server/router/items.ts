@@ -73,7 +73,11 @@ export const itemsRouter = router({
         category: true,
         group: {
           include: {
-            groupsOptions: true,
+            groupsOptions: {
+              include: {
+                category: true,
+              },
+            },
           },
         },
       },
