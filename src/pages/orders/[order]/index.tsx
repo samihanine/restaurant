@@ -17,6 +17,9 @@ import { toast } from 'react-hot-toast';
 import { InputSelectMultiple } from '@/components/inputs/InputSelectMultiple';
 import { priceToString } from '@/utils/priceToString';
 import { InputPrice } from '@/components/inputs/InputPrice';
+import { InputText } from '@/components/inputs/InputText';
+import { ScrollToTopButton } from '@/components/inputs/ScrollToTopButton';
+import { isEmpty } from '@/utils/isEmpty';
 
 const ItemsCard = ({ item, quantity = 0 }: { item: Items; quantity?: number }) => (
   <Card
@@ -29,19 +32,21 @@ const ItemsCard = ({ item, quantity = 0 }: { item: Items; quantity?: number }) =
         <p className="flex items-center gap-2">
           <span className="overflow-ellipsis text-lg font-bold">
             {Boolean(quantity) && <span className="mr-2 text-base font-medium text-primary">x{quantity}</span>}
-            {item.name} ({priceToString(item.price)})
+            {item.name} <span className="text-sm text-primary">{priceToString(item.price)}</span>
           </span>
         </p>
 
         <span className="w-full overflow-hidden overflow-ellipsis text-sm">{item.description}</span>
       </div>
-      <div className="flex w-20">
-        <img
-          src={item.imageUrl || 'https://www.iconpacks.net/icons/1/free-restaurant-icon-952-thumb.png'}
-          className="h-20 object-cover p-1"
-          alt={item.name}
-        />
-      </div>
+      {Boolean(item.imageUrl !== '' && item.imageUrl) && (
+        <div className="flex w-20">
+          <img
+            src={item.imageUrl || 'https://www.iconpacks.net/icons/1/free-restaurant-icon-952-thumb.png'}
+            className="h-20 object-cover p-1"
+            alt={item.name}
+          />
+        </div>
+      )}
     </div>
   </Card>
 );
@@ -55,39 +60,43 @@ const ItemCart = ({
   orderChilds?: OrdersItems[];
   quantity?: number;
   updateQuantity: (orderItem: OrdersItems, quantity: number) => void;
-}) => (
-  <>
-    <div className="flex w-full justify-between">
-      <div className="text-xl font-bold">
-        {orderItem.item.name} ({priceToString(orderItem.item.price)})
+}) => {
+  console.log(orderItem);
+  return (
+    <>
+      <div className="flex w-full justify-between">
+        <div className="text-lg font-bold">
+          {orderItem.item.name} {isEmpty(orderItem.comment) ? '' : `(${orderItem.comment})`}{' '}
+          <span className="text-sm text-primary">{priceToString(orderItem.item.price)}</span>
+        </div>
+        <div className="flex gap-3">
+          <ButtonCircle
+            className="!h-7 text-xl font-bold"
+            onClick={() => updateQuantity(orderItem, orderItem.quantity - 1)}
+          >
+            -
+          </ButtonCircle>
+          <span className="text-xl font-bold ">{orderItem.quantity}</span>
+          <ButtonCircle
+            className="!h-7 text-xl font-bold"
+            onClick={() => updateQuantity(orderItem, orderItem.quantity + 1)}
+          >
+            +
+          </ButtonCircle>
+        </div>
       </div>
-      <div className="flex gap-3">
-        <ButtonCircle
-          className="!h-7 text-xl font-bold"
-          onClick={() => updateQuantity(orderItem, orderItem.quantity - 1)}
-        >
-          -
-        </ButtonCircle>
-        <span className="font-bold">{orderItem.quantity}</span>
-        <ButtonCircle
-          className="!h-7 text-xl font-bold"
-          onClick={() => updateQuantity(orderItem, orderItem.quantity + 1)}
-        >
-          +
-        </ButtonCircle>
-      </div>
-    </div>
-    {orderChilds.length > 0 && (
-      <div className="ml-3 flex gap-1">
-        {orderChilds.map((orderItemChild, index) => (
-          <div key={orderItemChild.id} className="">
-            {orderItemChild.item.name} {index !== orderChilds.length - 1 && ' + '}
-          </div>
-        ))}
-      </div>
-    )}
-  </>
-);
+      {orderChilds.length > 0 && (
+        <div className="ml-3 flex gap-1">
+          {orderChilds.map((orderItemChild, index) => (
+            <div key={orderItemChild.id} className="">
+              {orderItemChild.item.name} {index !== orderChilds.length - 1 && ' + '}
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+};
 
 const Orders: NextPage = () => {
   const router = useRouter();
@@ -107,6 +116,7 @@ const Orders: NextPage = () => {
     () => ordersItems?.reduce((acc, curr) => acc + curr.price * curr.quantity, 0) || 0,
     [ordersItems]
   );
+  const [search, setSearch] = React.useState('');
 
   const confirmOrder = async () => {
     try {
@@ -170,10 +180,12 @@ const Orders: NextPage = () => {
       quantity,
       parentItemOrderId: null,
       price: selectedItem.price,
+      comment: data.comment,
     });
 
     if (selectedItem.group) {
       for (const [key, value] of Object.entries(data)) {
+        if (key === 'comment') continue;
         const option = selectedItem.group?.groupsOptions.find((option) => option.id === key);
         const itemsOptions = (value as string).split(',');
 
@@ -204,10 +216,10 @@ const Orders: NextPage = () => {
 
   return (
     <>
+      <ScrollToTopButton />
       <Wrapper>
-        <Card className="mb-4 flex w-full max-w-full justify-end border-b border-gray-300 bg-white">
-          <h2 className="text-xl font-bold text-primary">Panier de la commande</h2>
-          <div className="flex flex-col gap-2">
+        <Card className="mb-4 flex justify-end border-b border-gray-300 bg-white">
+          <div className="flex flex-col gap-3">
             {ordersItems
               ?.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
               .filter((orderItem) => !orderItem.parentItemOrderId)
@@ -225,20 +237,23 @@ const Orders: NextPage = () => {
 
           <div className="flex justify-between">
             <div></div>
-            <p className="text-2xl font-bold">Total: {priceToString(total)}</p>
+            <p className="text-2xl font-bold">
+              Total: <span className="text-primary">{priceToString(total)}</span>
+            </p>
           </div>
-          <InputPrice
-            label="Argent remis"
-            value={cashTendered}
-            onChange={(e) => setcashTendered(e.currentTarget.value)}
-            className="w-full"
-            id="tendered"
-          />
-          <div>
-            <h2 className="text-xl font-semibold">
-              Monaie à rendre:{' '}
+          <div className="flex w-full items-center justify-between">
+            <InputPrice
+              label="Argent remis par le client"
+              value={cashTendered}
+              onChange={(e) => setcashTendered(e.currentTarget.value)}
+              className="w-[50%] max-w-[300px]"
+              id="tendered"
+            />
+
+            <h2 className="flex flex-1 text-2xl font-bold">
+              Monaie:
               <span
-                className={`
+                className={`ml-2
                 ${parseFloat(cashTendered.replace(',', '.')) - total < 0 ? 'text-red-500' : 'text-green-500'}
               `}
               >
@@ -246,34 +261,76 @@ const Orders: NextPage = () => {
               </span>
             </h2>
           </div>
-          <div className="flex justify-center gap-4">
+          <div className="!mt-10 flex justify-center gap-4">
             <Button disabled={!Boolean(ordersItems?.length)} onClick={confirmOrder} className="self-center text-lg">
               Valider la commande
             </Button>
           </div>
         </Card>
+
+        <div className="mx-auto my-10 flex w-full max-w-4xl flex-col justify-between gap-3">
+          <h2 className="text-lg font-bold ">Rechercher un produit</h2>
+          <div className="flex w-full flex-1 gap-5">
+            <InputText
+              label=""
+              value={search}
+              onChange={(e) => setSearch(e.currentTarget.value)}
+              className="w-full flex-1 rounded-lg border-gray-200 bg-white !p-3 shadow"
+              id="search"
+              placeholder={`🔎 Tapez le nom d\'un produit`}
+            />
+
+            <Button variant="red" onClick={() => setSearch('')} className="text-lg">
+              X
+            </Button>
+          </div>
+          <h2 className="mt-4 text-lg font-bold">Accéder à une section</h2>
+          <div className="flex flex-wrap gap-3">
+            {data.map((category) => {
+              if (items.filter((item) => item.categoryId === category.id).length === 0) return null;
+
+              return (
+                <a
+                  href={`#${category.id}`}
+                  key={category.id}
+                  className="flex w-fit cursor-pointer rounded-xl border border-2 border-primary bg-white px-2 py-1 font-semibold text-primary"
+                >
+                  {category.name}
+                </a>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="flex flex-col gap-5">
-          {data?.map((category) => (
-            <div key={category.id} className="flex flex-col">
-              <h2 className="mb-3 text-xl font-semibold">{category.name}</h2>
-              <div className="flex flex-col gap-2">
-                {items
-                  .filter((item) => item.categoryId === category.id)
-                  .sort((a, b) => a.name.localeCompare(b.name))
-                  .map((item) => (
-                    <div key={item.id} onClick={() => setSelectedItem(item)}>
-                      <ItemsCard
-                        quantity={ordersItems?.reduce(
-                          (acc, curr) => (curr.itemId === item.id ? acc + curr.quantity : acc),
-                          0
-                        )}
-                        item={item}
-                      />
-                    </div>
-                  ))}
-              </div>
-            </div>
-          ))}
+          {data
+            ?.sort((a, b) => a.order - b.order)
+            .map((category) => {
+              if (items.filter((item) => item.categoryId === category.id).length === 0) return null;
+
+              return (
+                <div id={category.id} key={category.id} className="flex flex-col">
+                  <h2 className="mb-3 w-full text-center text-xl font-semibold">{category.name}</h2>
+                  <div className="flex flex-col gap-2">
+                    {items
+                      .filter((item) => item.categoryId === category.id)
+                      .filter((item) => item.name.toLowerCase().includes(search.toLowerCase()))
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map((item) => (
+                        <div key={item.id} onClick={() => setSelectedItem(item)}>
+                          <ItemsCard
+                            quantity={ordersItems?.reduce(
+                              (acc, curr) => (curr.itemId === item.id ? acc + curr.quantity : acc),
+                              0
+                            )}
+                            item={item}
+                          />
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              );
+            })}
         </div>
       </Wrapper>
       {selectedItem && (
@@ -318,7 +375,7 @@ const Orders: NextPage = () => {
                 ))}
               </div>
             )}
-
+            <InputText label="Commentaire (optionnel)" className="w-full" id="comment" name="comment" />
             <div className="flex w-full items-center justify-center gap-4">
               <ButtonCircle
                 type="button"
@@ -337,7 +394,6 @@ const Orders: NextPage = () => {
                 +
               </ButtonCircle>
             </div>
-
             <Button className="self-center" type="submit">
               Ajouter
             </Button>

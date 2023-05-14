@@ -216,7 +216,12 @@ const Menu: NextPage = () => {
               type="number"
             />
 
-            <InputSelect id="tvaPercent" name="tvaPercent" label="% de TVA">
+            <InputSelect
+              defaultValue={editItem.tvaPercent?.toString() || '10'}
+              id="tvaPercent"
+              name="tvaPercent"
+              label="% de TVA"
+            >
               <option value="10">10%</option>
               <option value="20">20%</option>
               <option value="5">5%</option>

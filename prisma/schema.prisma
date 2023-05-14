@@ -206,6 +206,7 @@ model OrdersItems {
     quantity          Int
     price             Float   @default(0)
     parentItemOrderId String?
+    comment           String? @default("")
 
     createdAt     DateTime      @default(now())
     updatedAt     DateTime      @updatedAt

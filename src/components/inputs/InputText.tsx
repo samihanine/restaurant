@@ -6,8 +6,8 @@ export type InputTextProps = React.InputHTMLAttributes<HTMLInputElement> & {
 };
 
 export const InputText = ({ label, id, className = '', ...props }: InputTextProps) => (
-  <div className="flex flex-col gap-2">
-    <Label id={id} label={label} />
+  <div className="flex w-full flex-col gap-2">
+    {label && label !== '' && <Label id={id} label={label} />}
     <input
       type="text"
       id={id}

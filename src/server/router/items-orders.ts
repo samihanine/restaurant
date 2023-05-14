@@ -9,6 +9,7 @@ const schema = z.object({
   parentItemOrderId: z.string().optional().nullable(),
   quantity: z.number().default(1).nullable(),
   price: z.number().optional().nullable(),
+  comment: z.string().optional().default(''),
 
   deletedAt: z.date().optional().nullable(),
   updateAt: z.date().optional().nullable(),

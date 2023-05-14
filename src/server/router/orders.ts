@@ -16,6 +16,7 @@ const schema = z.object({
   status: z.enum(['PENDING', 'PREPARING', 'READY', 'DELIVERED', 'CANCELED']).default('PENDING'),
   employeeId: z.string().optional(),
   type: z.enum(['DELIVERY', 'TAKEAWAY', 'ONSPOT']).default('ONSPOT'),
+  comment: z.string().optional().default(''),
   deletedAt: z.date().optional().nullable(),
   updateAt: z.date().optional().nullable(),
   createdAt: z.date().optional().nullable(),
@@ -107,6 +108,18 @@ export const ordersRouter = router({
       const orderId = input.id;
       const cashTendered = input.cashTendered;
 
+      // compter le nombre de commade depuis le 31 décembre dernier
+
+      const invoiceNumber = await ctx.prisma.orders.count({
+        where: {
+          id: orderId,
+          deletedAt: null,
+          updatedAt: {
+            gte: new Date(new Date().getFullYear(), 0, 1),
+          },
+        },
+      });
+
       const order = await ctx.prisma.orders.findFirst({
         where: {
           id: orderId,
@@ -156,12 +169,14 @@ export const ordersRouter = router({
           price: item.price,
           tvaPercent: item.item.tvaPercent,
           parentId: item.parentItemOrderId || undefined,
+          comment: item.comment || undefined,
         })),
         siret: order.restaurant.siretNumber,
         tva: order.restaurant.tvaNumber,
         phone: order.restaurant.phone,
         cashTendered: cashTendered,
         id: order.id,
+        invoiceNumber: invoiceNumber + 1,
       });
 
       const finalOrder = await ctx.prisma.orders.update({
@@ -183,6 +198,7 @@ export const ordersRouter = router({
 async function generateInvoicePdf(props: {
   id: string;
   orderNumber: string;
+  invoiceNumber: number;
   orderId?: string;
   restaurantAddress: string;
   restaurantName: string;
@@ -195,6 +211,7 @@ async function generateInvoicePdf(props: {
     price: number;
     tvaPercent: number;
     parentId?: string;
+    comment?: string;
   }[];
   siret: string;
   tva: string;
@@ -210,11 +227,17 @@ async function generateInvoicePdf(props: {
       doc.fontSize(8).text(props.restaurantName, { align: 'center' });
       doc.fontSize(8).text(props.restaurantAddress, { align: 'center' });
 
+      // invoice number
+      doc.moveDown().fontSize(8).text(`Facture N°${props.invoiceNumber}`, { align: 'center' });
+
       // Numéro de commande
       doc.moveDown().fontSize(14).text(`Commande E${props.orderNumber}`, { align: 'center', underline: true });
 
       // Date
-      doc.moveDown().fontSize(8).text(`Date: ${props.date.toLocaleString()}`, { align: 'right' });
+      doc
+        .moveDown()
+        .fontSize(8)
+        .text(`Date: ${props.date.toLocaleString('fr-FR')}`, { align: 'right' });
 
       doc.moveDown();
 
@@ -244,6 +267,7 @@ async function generateInvoicePdf(props: {
       let totalHT = 0;
       let totalTVA = 0;
       let totalTTC = 0;
+      const totalTVAByRate: { [key: number]: number } = {};
 
       sortedItems.forEach((item) => {
         const isParent = !item.parentId;
@@ -257,10 +281,21 @@ async function generateInvoicePdf(props: {
         totalTVA += itemTotalTVA;
         totalTTC += itemTotalPriceTTC;
 
+        // Ajouter le montant de la TVA à l'objet totalTVAByRate
+        if (totalTVAByRate[item.tvaPercent]) {
+          totalTVAByRate[item.tvaPercent] += itemTotalTVA;
+        } else {
+          totalTVAByRate[item.tvaPercent] = itemTotalTVA;
+        }
+
         doc
           .fontSize(8)
           .text(`${itemName} x${item.quantity}`, { continued: true })
           .text(itemTotalPriceTTC === 0 ? ' ' : priceToString(itemTotalPriceTTC), { align: 'right' });
+
+        if (item.comment && item.comment !== '') {
+          doc.fontSize(6).text(`Commentaire: ${item.comment}`);
+        }
       });
 
       // Total HT et TVA
@@ -270,8 +305,13 @@ async function generateInvoicePdf(props: {
         .text(`Total HT:`, { continued: true })
         .text(priceToString(totalHT), { align: 'right' });
 
-      doc.fontSize(8).text(`Total TVA:`, { continued: true }).text(priceToString(totalTVA), { align: 'right' });
-
+      // Imprimer les totaux TVA par taux
+      for (const tvaRate in totalTVAByRate) {
+        doc
+          .fontSize(8)
+          .text(`Total TVA (${tvaRate}%):`, { continued: true })
+          .text(priceToString(totalTVAByRate[tvaRate]), { align: 'right' });
+      }
       // Total TTC
       doc.fontSize(14).text(`Total TTC:`, { continued: true }).text(priceToString(totalTTC), { align: 'right' });
 
