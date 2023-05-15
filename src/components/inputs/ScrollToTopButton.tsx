@@ -28,7 +28,7 @@ const ScrollToTopButton = () => {
     <button
       onClick={scrollToTop}
       style={{ display: isVisible ? 'inline' : 'none' }}
-      className="fixed bottom-7 right-7 flex h-20 w-20 items-center justify-center rounded-full bg-primary text-white"
+      className="fixed bottom-7 right-7 flex h-20 w-20 cursor-pointer items-center justify-center rounded-full bg-primary text-white shadow-lg"
       aria-label="Scroll to top"
     >
       <div className="flex justify-center">

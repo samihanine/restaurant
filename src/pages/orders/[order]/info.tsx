@@ -10,10 +10,6 @@ import { Button } from '@/components/inputs/Button';
 import React, { useState } from 'react';
 import { Card } from '@/components/layouts/Card';
 
-type PdfModalProps = {
-  pdfData: string;
-};
-
 const Settings: NextPage = () => {
   const t = useTranslations();
   const router = useRouter();

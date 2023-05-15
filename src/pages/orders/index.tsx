@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { trpc } from '@/utils/trpc';
 import { toast } from 'react-hot-toast';
 import { createColumnHelper } from '@tanstack/react-table';
@@ -83,6 +83,11 @@ const OrdersPage: NextPage = () => {
     }),
   ];
 
+  const loading = useMemo(
+    () => createMutation.isLoading || destroyMutation.isLoading || isLoading || itemsIsLoading,
+    [createMutation.isLoading, destroyMutation.isLoading, isLoading, itemsIsLoading]
+  );
+
   return (
     <>
       <Wrapper title={'Commandes'}>
@@ -102,9 +107,11 @@ const OrdersPage: NextPage = () => {
                   </option>
                 ))}
               </InputSelect>
-              <Button type="submit" className="self-center text-xl">
-                Commencer une nouvelle commande
-              </Button>
+              {!loading && (
+                <Button disabled={loading} loading={loading} type="submit" className="self-center text-xl">
+                  Commencer une nouvelle commande
+                </Button>
+              )}
             </form>
           </Card>
 

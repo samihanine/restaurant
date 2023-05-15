@@ -228,7 +228,7 @@ async function generateInvoicePdf(props: {
       doc.fontSize(8).text(props.restaurantAddress, { align: 'center' });
 
       // invoice number
-      doc.moveDown().fontSize(8).text(`Facture N°${props.invoiceNumber}`, { align: 'center' });
+      doc.moveDown().fontSize(8).text(`Ticket N°${props.invoiceNumber}`, { align: 'center' });
 
       // Numéro de commande
       doc.moveDown().fontSize(14).text(`Commande E${props.orderNumber}`, { align: 'center', underline: true });
