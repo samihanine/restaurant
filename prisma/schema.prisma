@@ -51,7 +51,6 @@ model Restaurants {
     tvaNumber      String
     latitude       Float
     longitude      Float
-    userId         String
     primaryColor   String
     secondaryColor String
     menuId         String?

@@ -243,7 +243,7 @@ const Orders: NextPage = () => {
           </div>
           <div className="flex w-full items-center justify-between">
             <InputPrice
-              label="Espèce remis par le client"
+              label="Espèces remis par le client"
               value={cashTendered}
               onChange={(e) => setcashTendered(e.currentTarget.value)}
               className="w-[50%] max-w-[300px]"
@@ -251,7 +251,7 @@ const Orders: NextPage = () => {
             />
 
             <h2 className="flex w-max text-2xl font-bold">
-              <span className="whitespace-nowrap">Monaie rendue:</span>
+              <span className="whitespace-nowrap">Monnaie rendue:</span>
               <span
                 className={`ml-2
                 ${parseFloat(cashTendered.replace(',', '.')) - total < 0 ? 'text-red-500' : 'text-green-500'}
